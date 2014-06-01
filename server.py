@@ -32,7 +32,7 @@ class ServerMessageHandler:
             else:
                 print("(handler) adding new player {} to registry.".format(params[0]))
                 self.players[params[0]] = None
-                print("(handler) global registry: {}".format(self.players))
+                print("(handler) global player registry: {}".format(self.players))
                 clientsocket.send(b'OK')
 
         elif command == "JOIN":
@@ -51,8 +51,9 @@ class ServerMessageHandler:
             print("(handler) handling message: LIST")
             gamelist = ""
             for game in self.games:
-                if game.players <= 1:
-                    gamelist += game.name
+                assert isinstance(self.games[game].players, list)
+                if len(self.games[game].players) <= 1:
+                    gamelist += game
             print("(handler) sending game list: {}".format(gamelist))
             clientsocket.send(bytes(gamelist, 'ascii'))
 
@@ -67,6 +68,7 @@ class ServerMessageHandler:
                 print("(handler) updating player {0}'s current assigned game to {1}.".format(prefix, params[0]))
                 self.players[prefix] = params[0]
                 self.games[params[0]] = newGame
+                print("(handler) global game registry: {}".format(self.games))
                 clientsocket.send(b'OK')
 
         else:
@@ -97,7 +99,9 @@ class ServerMessageHandler:
 
 
 if __name__ == "__main__":
+    # name : gamename
     players = {}
+    # gamename : gameobject
     games = {}
     maxData = 1024
 

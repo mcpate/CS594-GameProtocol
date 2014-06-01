@@ -79,5 +79,5 @@ if __name__ == "__main__":
         client.joinGame(toJoin, playername, clientsocket)
         clientsocket.close()
 
-    
+
 
