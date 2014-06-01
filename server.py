@@ -36,6 +36,7 @@ class ServerMessageHandler:
                 clientsocket.send(b'OK')
 
         elif command == "JOIN":
+            print("(handler) handling message: JOIN")
             if params[0] not in self.games:
                 clientsocket.send(b"ERROR")
             else:
@@ -43,6 +44,7 @@ class ServerMessageHandler:
                     clientsocket.send(b'ERROR')
                 else:
                     self.games[params[0]].players.append(params[0])
+                    print("(handler) registering {0} with game {1}".format(prefix, params[0]))
                     clientsocket.send(b'OK')
 
         elif command == "LIST":

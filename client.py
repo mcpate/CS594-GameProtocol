@@ -31,6 +31,13 @@ class Client:
         print("(client) server response: {}".format(serverResponse))
         return serverResponse
 
+    def joinGame(self, gamename, playername, socket):
+        print("(client) joining game: {}".format(gamename))
+        socket.send(bytes(":{0};JOIN;{1}".format(playername, gamename), 'ascii'))
+        serverResponse = self.parse(socket.recv(maxData))
+        print("(client) server response: {}".format(serverResponse))
+        return serverResponse
+
 
 
 if __name__ == "__main__":
@@ -55,7 +62,6 @@ if __name__ == "__main__":
     clientsocket.connect(('localhost', 9999))
     gamenames = client.getGames(clientsocket)
     clientsocket.close()
-
     if len(gamenames) == 0:
         newGamename = ""
         while len(newGamename) == 0:
@@ -67,3 +73,11 @@ if __name__ == "__main__":
         clientsocket.close()
     else:
         print("Here are the available games: {}".format(gamenames))
+        toJoin = input("Please select one to join: ")
+        clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientsocket.connect(('localhost', 9999))
+        client.joinGame(toJoin, playername, clientsocket)
+        clientsocket.close()
+
+    
+
