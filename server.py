@@ -3,6 +3,7 @@ __author__ = 'MCP'
 
 import socket
 import select
+import copy
 
 
 class Game:
@@ -16,6 +17,7 @@ class Game:
             "2H", "3H", "4H", "5H" "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AH"]
         self.discard = []
         self.inProgress = False
+        self.currentPlay = None
 
     def beginGame(self):
         self.inProgress = True
@@ -29,24 +31,28 @@ class Game:
     def dealCards(self, to, deck, discard):
         player1 = to[0]
         player2 = to[1]
-        for _ in range(2):
-            player1.faceDown.append(deck.pop)
-            player2.faceDown.append(deck.pop)
-        for _ in range(2):
-            player1.faceUp.append(deck.pop)
-            player2.faceUp.append(deck.pop)
-        for _ in range(2):
-            player1.inHand.append(deck.pop)
-            player2.inHand.append(deck.pop)
-        discard.append(deck.pop)
+        #for _ in range(2):
+        #    player1.faceDown.append(deck.pop)
+        #    player2.faceDown.append(deck.pop)
+        #for _ in range(2):
+        #    player1.faceUp.append(deck.pop)
+        #    player2.faceUp.append(deck.pop)
+        for _ in range(3):
+            player1.inHand.append(deck.pop())
+            player2.inHand.append(deck.pop())
+        #discard.append(deck.pop)
 
+    def getOpponent(self, name):
+        for player in self.players:
+            if player.name != name:
+                return player
 
 
 class Player:
 
     def __init__(self, name, socket):
-        self.faceDown = []
-        self.faceUp = []
+        #self.faceDown = []
+        #self.faceUp = []
         self.inHand = []
         self.name = name
         self.socket = socket
@@ -86,6 +92,7 @@ class ServerMessageHandler:
                     clientsocket.send(b'ERROR')
                 else:
                     player = self.players[prefix]
+                    player.gameName = game.name
                     self.games[params[0]].players.append(player)
                     print("(handler) registering {0} with game {1}".format(prefix, params[0]))
                     clientsocket.send(b'OK')
@@ -110,10 +117,19 @@ class ServerMessageHandler:
                 newGame = Game()
                 newGame.name = game_name
                 player = self.players[prefix]
+                player.gameName = game_name
                 newGame.players.append(player)
                 self.games[game_name] = newGame
                 print("(handler) global game registry: {}".format(self.games))
                 clientsocket.send(b'OK')
+
+        elif command == "GETHAND":
+            print("(handler) handling message: GETHAND")
+            player = self.players[prefix]
+            print("(handler) building string response for hand: {}".format(player.inHand))
+            cardString = self.arrayToString(player.inHand)
+            print("(handler) sending '{}' to client".format(cardString))
+            clientsocket.send(bytes(cardString, 'ascii'))
 
         elif command == "STARTGAME":
             game = self.games[params[0]]
@@ -129,11 +145,42 @@ class ServerMessageHandler:
                 game.beginGame()
                 clientsocket.send(b'OK')
 
+        elif command == "PLAY":
+            print("(handler) handling message: PLAY")
+            player = self.players[prefix]
+            game_name = player.gameName
+            game = self.games[game_name]
+            opponent = game.getOpponent(player)
+            print("(handler) '{0}' playing '{1}'".format(player.name, params[0]))
+            if game.currentPlay is None:
+                print("(handler) first play")
+                game.currentPlay = params[0]
+            else:
+                if game.currentPlay[0] > params[0][0]:
+                    print("(handler) LOOSE/WIN")
+                    clientsocket.send(b'LOOSE')
+                    opponent.socket.send(b'WIN')
+                elif game.currentPlay[0] < params[0][0]:
+                    print("(handler) WIN/LOOSE")
+                    clientsocket.send(b'WIN')
+                    opponent.socket.send(b'LOOSE')
+                else:
+                    print("(handler) TIE/TIE")
+                    clientsocket.send(b'TIE')
+                    opponent.socket.send(b'TIE')
+                game.currentPlay = None
 
         else:
             print("(handler) ERROR: Unknown message: ".format(msg))
             #aise Exception
 
+    def arrayToString(self, array):
+        a = array.copy()
+        s = ""
+        while len(a) > 1:
+            s += a.pop() + ";"
+        s += a.pop()
+        return s
 
     def parse(self, msg):
         prefix = ""
@@ -199,8 +246,8 @@ if __name__ == "__main__":
                     else:
                         print("\nreceived data from {}".format(sock.getpeername()))
                         handler.handle(sock, data)
-                except:
-                    print("lost a connection from {0} with error {1}".format(sock.getpeername()))
+                except ConnectionError:
+                    print("lost a connection from {0}.".format(sock.getpeername()))
                     sock.close()
                     connections.remove(sock)
                     continue

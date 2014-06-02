@@ -17,6 +17,13 @@ class Client:
         msg = str(byteMessage)
         return msg[2:-1]
 
+    def getDiscard(self, playername, gamename, socket):
+        print("(client) requesting discard")
+        socket.send(bytes(":{0};GETDISCARD;{1}".format(playername, gamename), 'ascii'))
+        serverResponse = self.parse(socket.recv(maxData))
+        print("(client) server response: ".format(serverResponse))
+        return serverResponse
+
     def getGames(self, socket):
         print("(client) requesting the list of games.")
         socket.send(b"LIST;")
@@ -27,6 +34,13 @@ class Client:
             return []
         else:
             return serverResponse[1:]
+
+    def getHand(self, playername, gamename, socket):
+        print("(client) requesting hand")
+        socket.send(bytes(":{0};GETHAND;{1}".format(playername, gamename), 'ascii'))
+        serverResponse = self.parse(socket.recv(maxData))
+        print("(client) server response: ".format(serverResponse))
+        return serverResponse.split(";")
 
     def registerGame(self, gamename, playername, socket):
         print("(client) registering new game: {}".format(gamename))
@@ -56,8 +70,15 @@ class Client:
                 data = socket.recv(maxData)
         except BrokenPipeError as e:
             print("(client) broken pipe with error: {}".format(e))
-
         print("(client) game beginning")
+
+    def play(self, card, playername, gamename, socket):
+        print("(client) playing card: {}".format(card))
+        socket.send(bytes(":{0};PLAY;{1}".format(playername, card), 'ascii'))
+        serverResponse = self.parse(socket.recv(maxData))
+        print("(client) response: ".format(serverResponse))
+        return serverResponse
+
 
 
 
@@ -100,7 +121,24 @@ if __name__ == "__main__":
 
     null = client.waitForGameStart(playername, gamename, clientsocket)
 
-    #client.playGame(clientsocket)
+    rounds = 0
+    winCount = 0
+    hand = client.getHand(playername, gamename, clientsocket)
+    while len(hand) >= 0:
+        rounds += 1
+        print("Beginning Round {}.".format(rounds))
+        winRound = 0
+        while len(hand) > 0:
+            card = input("Here are your cards: {}\nSelect one to play: ".format(hand))
+            hand.remove(card)
+            status = client.play(card, playername, gamename, clientsocket)
+            print("The results of that play are: {}".format(status))
+        #hand
+
+
+
+
+
 
 
     clientsocket.close()
