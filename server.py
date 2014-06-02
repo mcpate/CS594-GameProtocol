@@ -7,14 +7,15 @@ import select
 
 class Game:
 
-    name = ""
-    players = []
-    deck = ["2C", "3C", "4C", "5C" "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC", "AC",
+    def __init__(self):
+        self.name = ""
+        self.players = []
+        self.deck = ["2C", "3C", "4C", "5C" "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC", "AC",
             "2D", "3D", "4D", "5D" "6D", "7D", "8D", "9D", "10D", "JD", "QD", "KD", "AD",
             "2S", "3S", "4S", "5S" "6S", "7S", "8S", "9S", "10S", "JS", "QS", "KS", "AS",
             "2H", "3H", "4H", "5H" "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AH"]
-    discard = []
-    inProgress = False
+        self.discard = []
+        self.inProgress = False
 
     def beginGame(self):
         self.inProgress = True
@@ -43,11 +44,10 @@ class Game:
 
 class Player:
 
-    faceDown = []
-    faceUp = []
-    inHand = []
-
     def __init__(self, name, socket):
+        self.faceDown = []
+        self.faceUp = []
+        self.inHand = []
         self.name = name
         self.socket = socket
         self.gameName = ""
@@ -66,20 +66,23 @@ class ServerMessageHandler:
 
         if command == "REGISTER":
             print("(handler) handling message: REGISTER")
-            if params[0] in self.players:
+            player_name = params[0]
+            if player_name in self.players:
                 clientsocket.send(b'ERROR')
             else:
-                print("(handler) adding new player {} to registry.".format(params[0]))
-                self.players[params[0]] = Player(params[0], clientsocket)
+                print("(handler) adding new player {} to registry.".format(player_name))
+                self.players[player_name] = Player(player_name, clientsocket)
                 print("(handler) global player registry: {}".format(self.players))
                 clientsocket.send(b'OK')
 
         elif command == "JOIN":
             print("(handler) handling message: JOIN")
+            game = self.games[params[0]]
             if params[0] not in self.games:
                 clientsocket.send(b"ERROR")
             else:
-                if len(self.games[params[0]].players) > 2:
+                print("(handler) '{0}' requesting to JOIN '{1}'".format(prefix, game.name))
+                if len(self.games[params[0]].players) == 2:
                     clientsocket.send(b'ERROR')
                 else:
                     player = self.players[prefix]
@@ -99,29 +102,31 @@ class ServerMessageHandler:
 
         elif command == "CREATE":
             print("(handler) handling message: CREATE")
-            if params[0] in self.games:
+            game_name = params[0]
+            if game_name in self.games:
                 clientsocket.send(b'ERROR')
             else:
-                print("(handler) creating new game {0} for player {1}".format(params[0], prefix))
+                print("(handler) creating new game {0} for player {1}".format(game_name, prefix))
                 newGame = Game()
+                newGame.name = game_name
                 player = self.players[prefix]
                 newGame.players.append(player)
-                print("(handler) updating player {0}'s current assigned game to {1}.".format(prefix, params[0]))
-                self.players[prefix] = params[0]
-                self.games[params[0]] = newGame
+                self.games[game_name] = newGame
                 print("(handler) global game registry: {}".format(self.games))
                 clientsocket.send(b'OK')
 
         elif command == "STARTGAME":
-            print("(handler) received request to start game '{0}' from '{1}'".format(params[0], prefix))
-            # Check if the game is legit and has right amount of players.
-            game = params[0]
-            if not self.games[game] or len(self.games[game].players) < 2:
+            game = self.games[params[0]]
+            print(game)
+            print("(handler) received request to start game '{0}' from '{1}'".format(game.name, prefix))
+            if len(game.players) < 2:
                 clientsocket.send(b'ERROR')
-            elif self.games[game].inProgress:
+            elif game.inProgress:
                 clientsocket.send(b'OK')
             else:
-                self.games[game].beginGame()
+                print("(handler) beginning game {}".format(game.name))
+                print(game.players[0].name, game.players[1].name)
+                game.beginGame()
                 clientsocket.send(b'OK')
 
 
@@ -137,7 +142,7 @@ class ServerMessageHandler:
         msg = str(msg)
         # Remove the " b'...' "
         msg = msg[2:-1] #trim here seems to not be needed now?
-        print("(handler) trimmed message to: {}".format(msg))
+        #print("(handler) trimmed message to: {}".format(msg))
         if len(msg) < 1:
             return "UNKNOWN", "UNKNOWN", "UNKNOWN"
         # We have an optional prefix
@@ -149,7 +154,7 @@ class ServerMessageHandler:
         else:
             command = msg[0]
             params = msg[1:]
-        print("(handler) parsed message to: {} - {} - {}".format(prefix, command, params))
+        #print("(handler) parsed message to: {} - {} - {}".format(prefix, command, params))
         return prefix, command, params
 
 

@@ -78,13 +78,9 @@ if __name__ == "__main__":
         playername = str(input("Please enter a nickname to use: "))
         while len(playername) == 0:
             playername = str(input("Please enter a nickname to use: "))
-        #clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #clientsocket.connect(('localhost', 9999))
-        response = client.registerPlayername(playername, clientsocket)
-        #clientsocket.close()
 
-    #clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #clientsocket.connect(('localhost', 9999))
+        response = client.registerPlayername(playername, clientsocket)
+
     gamenames = client.getGames(clientsocket)
     gamename = ""
     if len(gamenames) == 0:
@@ -93,15 +89,18 @@ if __name__ == "__main__":
         client.registerGame(gamename, playername, clientsocket)
     else:
         print("Here are the available games: {}".format(gamenames))
-        gamename = input("Please select one to join: ")
-        #clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #clientsocket.connect(('localhost', 9999))
-        client.joinGame(gamename, playername, clientsocket)
-        #clientsocket.close() #todo: add in the option to create a game.
+        gamename = ""
+        while len(gamename) == 0:
+            gamename = input("Please select one to join or type a new name to create a game: ")
+        if gamename in gamenames:
+            client.joinGame(gamename, playername, clientsocket)
+        else:
+            client.registerGame(gamename, playername, clientsocket)
 
-    value = client.waitForGameStart(playername, gamename, clientsocket)
 
-    #client.requestCards(clientsocket)
+    null = client.waitForGameStart(playername, gamename, clientsocket)
+
+    #client.playGame(clientsocket)
 
 
     clientsocket.close()
