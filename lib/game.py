@@ -40,6 +40,9 @@ class Game:
             if player.name != name:
                 return player
 
+    def numPlayers(self):
+        return len(self.players)
+
 
 class Card:
 
