@@ -4,15 +4,11 @@ __author__ = 'MCP'
 import unittest
 from lib.game import Card
 from lib.game import Deck
+from lib.game import Game
+from lib.game import Player
 
 
 class CardTest(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_returnsCorrectValue(self):
         card = Card('QH')
@@ -35,12 +31,6 @@ class CardTest(unittest.TestCase):
 
 class DeckTest(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_hasCorrectNumCards(self):
         deck = Deck()
         self.assertEqual(len(deck.cards), 52)
@@ -54,6 +44,27 @@ class DeckTest(unittest.TestCase):
         deck.shuffle()
         for card in deck.cards:
             print(card.value)
+
+
+class GameTest(unittest.TestCase):
+
+    def test_dealCardsDealsCorrectly(self):
+        m = Player('Matt', 'DummySocket')
+        j = Player('Jamie', 'DummySocket')
+        deck = Deck()
+        game = Game('SomeGameName', m)
+        game.addPlayer(j)  # This isn't really necessary.
+        game.dealCards([m, j], deck)
+        self.assertEqual(m.hand.size(), 3)
+        self.assertEqual(m.up.size(), 3)
+        self.assertEqual(m.down.size(), 3)
+        self.assertEqual(j.hand.size(), 3)
+        self.assertEqual(j.up.size(), 3)
+        self.assertEqual(m.down.size(), 3)
+        self.assertEqual(deck.size(), (52 - 18))
+
+
+
 
 
 if __name__ == "__main__":

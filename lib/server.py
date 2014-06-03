@@ -3,8 +3,7 @@ __author__ = 'MCP'
 
 import socket
 import select
-from lib.game import Player
-
+from lib.game import *
 
 
 class ServerMessageHandler:

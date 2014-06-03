@@ -6,39 +6,34 @@ import random
 
 class Game:
 
-    def __init__(self):
-        self.name = ""
-        self.players = []
-        self.deck = ["2C", "3C", "4C", "5C" "6C", "7C", "8C", "9C", "10C", "JC", "QC", "KC", "AC",
-            "2D", "3D", "4D", "5D" "6D", "7D", "8D", "9D", "10D", "JD", "QD", "KD", "AD",
-            "2S", "3S", "4S", "5S" "6S", "7S", "8S", "9S", "10S", "JS", "QS", "KS", "AS",
-            "2H", "3H", "4H", "5H" "6H", "7H", "8H", "9H", "10H", "JH", "QH", "KH", "AH"]
-        self.discard = []
+    def __init__(self, name, creator):
+        assert isinstance(creator, Player)
+        self.name = name
+        self.players = [creator]
+        self.deck = Deck().shuffle()
+        self.discard = Pile()
         self.inProgress = False
-        self.currentPlay = None
+
+    def addPlayer(self, player):
+        assert isinstance(player, Player)
+        assert len(self.players) < 2
+        self.players.append(player)
 
     def beginGame(self):
+        assert len(self.players) == 2
         self.inProgress = True
-        self.shuffleDeck(self.deck)
-        self.dealCards(self.players, self.deck, self.discard)
+        self.dealCards(self.players, self.deck)
 
-    def shuffleDeck(self, deck):
-        deck = deck #todo: create shuffle
-
-    # Assuming 2 players for now...
-    def dealCards(self, to, deck, discard):
-        player1 = to[0]
-        player2 = to[1]
-        #for _ in range(2):
-        #    player1.faceDown.append(deck.pop)
-        #    player2.faceDown.append(deck.pop)
-        #for _ in range(2):
-        #    player1.faceUp.append(deck.pop)
-        #    player2.faceUp.append(deck.pop)
+    def dealCards(self, players, deck):
         for _ in range(3):
-            player1.inHand.append(deck.pop())
-            player2.inHand.append(deck.pop())
-        #discard.append(deck.pop)
+            for player in players:
+                player.down.addCard(deck.getCard())
+        for _ in range(3):
+            for player in players:
+                player.up.addCard(deck.getCard())
+        for _ in range(3):
+            for player in players:
+                player.hand.addCard(deck.getCard())
 
     def getOpponent(self, name):
         for player in self.players:
@@ -87,33 +82,32 @@ class Deck:
     def shuffle(self):
         random.shuffle(self.cards)
 
+    def getCard(self):
+        return self.cards.pop()
 
-class DiscardPile(Deck):
+    def size(self):
+        return len(self.cards)
+
+
+class Pile(Deck):
 
     def __init__(self):
         super().__init__()
         self.cards = []
 
-    def add(self, card):
+    def addCard(self, card):
         assert isinstance(card, Card)
         self.cards.append(card)
 
     def clear(self):
         self.cards = []
 
-    
-
-
-
-
-
 
 class Player:
 
     def __init__(self, name, socket):
-        #self.faceDown = []
-        #self.faceUp = []
-        self.inHand = []
         self.name = name
         self.socket = socket
-        self.gameName = ""
+        self.hand = Pile()
+        self.up = Pile()
+        self.down = Pile()
