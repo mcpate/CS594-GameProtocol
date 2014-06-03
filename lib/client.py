@@ -7,10 +7,12 @@ sys.path.append('..')
 import socket
 from time import sleep
 import logging
+from lib.game import Player
+from lib.game import Pile
 
 
-class Client:  # creat a lambda here that prints sending message and receiving message
-                # and sends into socket/receives from socket?  should shorten methods...
+class Client:
+
     def __init__(self, socket, maxReceive):
         self.socket = socket
         self.maxReceive = maxReceive
@@ -71,21 +73,24 @@ class Client:  # creat a lambda here that prints sending message and receiving m
         #print("(client) server response: {}".format(serverResponse))
         #return serverResponse
 
-    def waitForGameStart(self, playername, gamename, socket):
-        print("(client) waiting (polling) for game start")
-        msg = ":{0};STARTGAME;{1}".format(playername, gamename)
-        try:
-            socket.send(bytes(msg, 'ascii'))
-            data = socket.recv(MAX_RECV)
-            while self.parse(data) != "OK":
-                print("(client) polling...")
-                print("(client) message received: {}".format(data))
-                sleep(3)
-                socket.send(bytes(msg, 'ascii'))
-                data = socket.recv(MAX_RECV)
-        except BrokenPipeError as e:
-            print("(client) broken pipe with error: {}".format(e))
-        print("(client) game beginning")
+    def waitForGameStart(self, playerName, gameName):
+        response = self.send(":{0};STARTGAME;{1}".format(playerName, gameName))
+        while response != "OK":
+            sleep(3)
+            response = self.send(":{0};STARTGAME;{1}".format(playerName, gameName))
+        return response
+        #try:
+        #    socket.send(bytes(msg, 'ascii'))
+        #    data = socket.recv(MAX_RECV)
+        #    while self.parse(data) != "OK":
+        #        print("(client) polling...")
+        #        print("(client) message received: {}".format(data))
+        #        sleep(3)
+        #        socket.send(bytes(msg, 'ascii'))
+        #        data = socket.recv(MAX_RECV)
+        #except BrokenPipeError as e:
+        #    print("(client) broken pipe with error: {}".format(e))
+        #print("(client) game beginning")
 
     def play(self, card, playername, gamename, socket):
         print("(client) playing card: {}".format(card))
@@ -132,10 +137,14 @@ if __name__ == "__main__":
             client.joinGame(playerName, gameName)
         else:
             client.registerGame(playerName, gameName)
-    #
-    #
-    # null = client.waitForGameStart(playername, gamename, clientsocket)
-    #
+
+    gameStart = client.waitForGameStart(playerName, gameName)
+
+    # Game loop
+    state = ""
+    self = Player()
+    while state != "GAMEOVER":
+
     # rounds = 0
     # winCount = 0
     # hand = client.getHand(playername, gamename, clientsocket)
@@ -150,4 +159,4 @@ if __name__ == "__main__":
     #         print("The results of that play are: {}".format(status))
     #     #hand
 
-    clientsocket.close()
+    clientSocket.close()

@@ -31,7 +31,7 @@ class ServerMessageHandler:
             else:
                 print("(handler) adding new player {} to registry.".format(player_name))
                 self.players[player_name] = Player(player_name, clientSocket)
-                print("(handler) global player registry: {}".format(self.players))
+                #print("(handler) global player registry: {}".format(self.players))
                 clientSocket.send(b'OK')
 
         elif command == "JOIN":
@@ -64,18 +64,16 @@ class ServerMessageHandler:
 
         elif command == "CREATE":
             print("(handler) handling message: CREATE")
-            game_name = params[0]
-            if game_name in self.games:
+            gameName = params[0]
+            if gameName in self.games:
                 clientSocket.send(b'ERROR')
             else:
-                print("(handler) creating new game {0} for player {1}".format(game_name, prefix))
-                newGame = Game()
-                newGame.name = game_name
-                player = self.players[prefix]
-                player.gameName = game_name
-                newGame.players.append(player)
-                self.games[game_name] = newGame
-                print("(handler) global game registry: {}".format(self.games))
+                creator = self.players[prefix]
+                print("(handler) creating new game '{0}' for player '{1}'".format(gameName, prefix))
+                newGame = Game(gameName, creator)
+                creator.game = newGame
+                self.games[gameName] = newGame
+                #print("(handler) global game registry: {}".format(self.games))
                 clientSocket.send(b'OK')
 
         elif command == "GETHAND":
@@ -132,7 +130,7 @@ class ServerMessageHandler:
     def findOpenGames(self):
         gameList = []
         for game in self.games:
-                if game.numPlayers() < 2:
+                if self.games[game].numPlayers() < 2:
                     gameList.append(game)
         return gameList
 
