@@ -152,8 +152,6 @@ class ServerMessageHandler:
         return prefix, command, params
 
 
-
-
 if __name__ == "__main__":
     players = {}  # name : gamename
     games = {}  # gamename : gameobject
@@ -161,13 +159,12 @@ if __name__ == "__main__":
     connections = []
     MAX_RECV = 1024
 
-    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(('localhost', 9999))
-    print("socket bound to port 9999")
-    serversocket.listen(5)
-    print("socket listening for connections")
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('localhost', 9999))
+    server.listen(5)
+    print("server socket bound to 'localhost:9999' and listening for connections")
 
-    connections.append(serversocket)
+    connections.append(server)
 
     while True:
 
@@ -177,10 +174,10 @@ if __name__ == "__main__":
         for sock in read_sockets:
 
             # New connection.
-            if sock == serversocket:
-                clientsocket, address = serversocket.accept()
-                connections.append(clientsocket)
-                print("\ngot a connection from {}".format(address))
+            if sock == server:
+                client, address = server.accept()
+                connections.append(client)
+                print("\ngot a connection from '{}'".format(address))
 
             # Message for an already connected client.
             else:
@@ -188,7 +185,8 @@ if __name__ == "__main__":
                     data = sock.recv(MAX_RECV)
                     # Not sure why this case started happening randomly..
                     if data == b'':
-                        print("\nconnection broken to {}".format(sock.getpeername()))
+                        print("\nconnection broken to '{}'".format(sock.getpeername()))
+                        sock.close()
                         connections.remove(sock)
                     else:
                         print("\nreceived data from {}".format(sock.getpeername()))
@@ -199,7 +197,7 @@ if __name__ == "__main__":
                     connections.remove(sock)
                     continue
 
-    serversocket.close()
+    server.close()
 
 
 
