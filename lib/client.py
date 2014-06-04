@@ -11,6 +11,7 @@ import logging
 from lib.game import Player
 from lib.game import Pile
 from lib.message import ServerMessageParser
+from lib.game import Card
 
 
 class Client:
@@ -44,8 +45,12 @@ class Client:
     def joinGame(self, playerName, gameName):
         return self.send(":{0};JOIN;{1}".format(playerName, gameName))
 
-    def pollForStatusOfPlay(self, playerName, gameName):
-        return self.send(":{0};STATUSOFPLAY;{1}".format(playerName, gameName))
+    def pollForOpponentMove(self, playerName, gameName):
+        response = self.send(":{0};OPPONENTMOVE;{1}".format(playerName, gameName))
+        while response == "ERROR":
+            sleep(3)
+            response = self.send(":{0};OPPONENTMOVE;{1}".format(playerName, gameName))
+        return response
 
     def pollForGameStart(self, playerName, gameName):
         response = self.send(":{0};STARTGAME;{1}".format(playerName, gameName))
@@ -107,10 +112,10 @@ if __name__ == "__main__":
     gameStart = client.pollForGameStart(playerName, gameName)
 
     # Game loop
+    print("Game beginning!")
     statusOfPlay = ""
     self = Player('DummyVar', 'DummyVar')
     while statusOfPlay != "GAMEOVER":
-        print("Game beginning!")
 
         print("Waiting for turn...")
         turn = client.pollForTurn(playerName, gameName)
@@ -118,12 +123,25 @@ if __name__ == "__main__":
         #discard = client.getDiscard(playerName, gameName)
         hand = client.getHand(playerName, gameName)
 
-        while hand != "EMPTY":
-            print("Here are your cards: {}".format(hand))
-            toPlay = client.getUserInput("Select a card to play: ")
-            client.play(playerName, toPlay)
+        #while hand != "EMPTY":
+        print("Here are your cards: {}".format(hand))
+        toPlay = client.getUserInput("Select a card to play: ")
 
-         #   statusOfPlay = client.pollForStatusOfPlay(playerName, gameName)
+        client.play(playerName, toPlay)
+        clientCard = Card(toPlay)
+
+        opponentMove = client.pollForOpponentMove(playerName, gameName)
+        opponentCard = Card(opponentMove)
+
+        print("You played '{0}' - Your opponent played '{1}'.".format(clientCard.value, opponentCard.value))
+        if clientCard.compare(opponentCard) == 1:
+            print("You win!")
+        elif clientCard.compare(opponentCard) == 0:
+            print("You tie!")
+        else:
+            print("You lose!")
+
+
 
     # rounds = 0
     # winCount = 0

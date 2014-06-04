@@ -53,6 +53,7 @@ class Game:
             return self.currentTurn.pop()
 
     def getOpponent(self, player):
+        assert isinstance(player, Player)
         for p in self.players:
             if p.name != player.name:
                 return p

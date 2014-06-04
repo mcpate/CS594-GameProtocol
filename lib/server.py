@@ -103,10 +103,16 @@ class ServerMessageHandler:
                 game.beginGame()
                 clientSocket.send(b'OK')
 
-        elif command == "STATUSOFPLAY":
+        elif command == "OPPONENTMOVE":
             player = self.players[prefix]
             game = player.game
-
+            opponent = game.getOpponent(player)
+            print("(handler) received '{0}' polling for OPPONENTMOVE '{1}'".format(player.name, opponent.name))
+            if opponent.currentPlay is None:
+                clientSocket.send(b'ERROR')
+            else:
+                clientSocket.send(bytes(opponent.currentPlay.value, 'ascii'))
+                opponent.currentPlay = None
 
         elif command == "PLAY":
             print("(handler) handling message: PLAY")
