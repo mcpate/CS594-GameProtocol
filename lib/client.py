@@ -121,14 +121,14 @@ if __name__ == "__main__":
     self = Player('DummyVar', 'DummyVar')
     while statusOfPlay != "GAMEOVER":
 
-        print("Waiting for turn...")
-        turn = client.pollForTurn(playerName, gameName)
-
         #discard = client.getDiscard(playerName, gameName)
         hand = msgParser.stringToArray(client.getHand(playerName, gameName))
         if hand[0] == "EMPTY":
             statusOfPlay = "GAMEOVER"
             break
+
+        print("Waiting for turn...")
+        turn = client.pollForTurn(playerName, gameName)
 
         #while hand != "EMPTY":
         print("Here are your cards: {}".format(hand))
