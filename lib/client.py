@@ -80,6 +80,7 @@ class Client:
 
 if __name__ == "__main__":
     MAX_RECV = 1024
+    msgParser = ServerMessageParser()
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect(('localhost', 9999))
 
@@ -112,6 +113,9 @@ if __name__ == "__main__":
     gameStart = client.pollForGameStart(playerName, gameName)
 
     # Game loop
+    winCount = 0
+    tieCount = 0
+    lossCount = 0
     print("Game beginning!")
     statusOfPlay = ""
     self = Player('DummyVar', 'DummyVar')
@@ -121,40 +125,38 @@ if __name__ == "__main__":
         turn = client.pollForTurn(playerName, gameName)
 
         #discard = client.getDiscard(playerName, gameName)
-        hand = client.getHand(playerName, gameName)
+        hand = msgParser.stringToArray(client.getHand(playerName, gameName))
+        if hand[0] == "EMPTY":
+            statusOfPlay = "GAMEOVER"
+            break
 
         #while hand != "EMPTY":
         print("Here are your cards: {}".format(hand))
         toPlay = client.getUserInput("Select a card to play: ")
+        while toPlay not in hand:
+            toPlay = client.getUserInput("Select a card to play: ")
 
         client.play(playerName, toPlay)
         clientCard = Card(toPlay)
 
+        print("Waiting for your opponent to play...")
         opponentMove = client.pollForOpponentMove(playerName, gameName)
         opponentCard = Card(opponentMove)
 
         print("You played '{0}' - Your opponent played '{1}'.".format(clientCard.value, opponentCard.value))
         if clientCard.compare(opponentCard) == 1:
             print("You win!")
+            winCount += 1
         elif clientCard.compare(opponentCard) == 0:
             print("You tie!")
+            tieCount += 1
         else:
             print("You lose!")
+            lossCount += 1
 
-
-
-    # rounds = 0
-    # winCount = 0
-    # hand = client.getHand(playername, gamename, clientsocket)
-    # while len(hand) >= 0:
-    #     rounds += 1
-    #     print("Beginning Round {}.".format(rounds))
-    #     winRound = 0
-    #     while len(hand) > 0:
-    #         card = input("Here are your cards: {}\nSelect one to play: ".format(hand))
-    #         hand.remove(card)
-    #         status = client.play(card, playername, gamename, clientsocket)
-    #         print("The results of that play are: {}".format(status))
-    #     #hand
+    if (winCount + tieCount) > lossCount:
+        print("You win the overall count!  Congrats!\nGAME OVER.")
+    else:
+        print("You lose the overall count.\nGAME OVER.")
 
     clientSocket.close()

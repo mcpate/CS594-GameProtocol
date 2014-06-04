@@ -113,6 +113,8 @@ class Deck:
         random.shuffle(self.cards)
 
     def getCard(self):
+        if self.size() == 0:
+            return None
         return self.cards.pop()
 
     def toStringArray(self):
@@ -120,6 +122,11 @@ class Deck:
         for card in self.cards:
             deck.append(card.value)
         return deck
+
+    def removeByValue(self, value):
+        for card in self.cards:
+            if card.value == value:
+                self.cards.remove(card)
 
     def size(self):
         return len(self.cards)

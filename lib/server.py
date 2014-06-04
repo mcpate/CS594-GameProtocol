@@ -120,27 +120,13 @@ class ServerMessageHandler:
             game = player.game
             player.currentPlay = Card(params[0])
             print("(handler) registering '{0}' playing '{1}'".format(player.name, params[0]))
+            player.hand.removeByValue(params[0])
+            draw = game.deck.getCard()
+            if not draw is None:
+                player.hand.addCard(draw)
             game.rotateCurrentPlayer()
             print("(handler) rotating current player to: {}".format(game.currentPlayer.name))
             clientSocket.send(b'OK')
-
-            #if game.currentPlay is None:
-            #    print("(handler) first play")
-            #    game.currentPlay = params[0]
-            #else:
-            #   if game.currentPlay[0] > params[0][0]:
-             #       print("(handler) LOOSE/WIN")
-             #       clientSocket.send(b'LOOSE')
-             #       opponent.socket.send(b'WIN')
-             #   elif game.currentPlay[0] < params[0][0]:
-             #       print("(handler) WIN/LOOSE")
-             #       clientSocket.send(b'WIN')
-             #       opponent.socket.send(b'LOOSE')
-             #   else:
-             #       print("(handler) TIE/TIE")
-             #       clientSocket.send(b'TIE')
-             #       opponent.socket.send(b'TIE')
-             #   game.currentPlay = None
 
         elif command == "TURN":
             print("(handler) handling message: TURN")
