@@ -32,3 +32,14 @@ class ClientMessageParser:
             command = msg[0]
             params = msg[1:]
         return prefix, command, params
+
+
+class ServerMessageParser:
+
+    def parse(self, byteMessage):
+        msg = str(byteMessage)
+        return msg[2:-1]
+
+    def stringToArray(self, text):
+        text = str(text)
+        return text.split(";")

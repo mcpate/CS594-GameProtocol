@@ -10,7 +10,11 @@ class Game:
         assert isinstance(creator, Player)
         self.name = name
         self.players = [creator]
-        self.deck = Deck().shuffle()
+        self.currentPlayer = None
+        # Array of active player in 'this' turn.
+        self.currentTurn = []
+        self.deck = Deck()
+        self.deck.shuffle()
         self.discard = Pile()
         self.inProgress = False
 
@@ -23,6 +27,7 @@ class Game:
         assert len(self.players) == 2
         self.inProgress = True
         self.dealCards(self.players, self.deck)
+        self.currentPlayer = self.getNextPlayer()
 
     def dealCards(self, players, deck):
         for _ in range(3):
@@ -35,13 +40,34 @@ class Game:
             for player in players:
                 player.hand.addCard(deck.getCard())
 
-    def getOpponent(self, name):
-        for player in self.players:
-            if player.name != name:
-                return player
+    def getNextPlayer(self):
+        #for player in self.players:
+        #    if self.currentPlayer is None or player.name != self.currentPlayer.name:
+        #        return player
+        # This should work for arbitrary number of players
+        if len(self.currentTurn) == 0:
+            for player in self.players:
+                self.currentTurn.append(player)
+            return self.currentTurn.pop()
+        else:
+            return self.currentTurn.pop()
+
+    def getOpponent(self, player):
+        for p in self.players:
+            if p.name != player.name:
+                return p
 
     def numPlayers(self):
         return len(self.players)
+
+    def peekTopOfDiscard(self):
+        if self.discard.size == 0:
+            return "ERROR"
+        else:
+            return self.discard[0].value
+
+    def rotateCurrentPlayer(self):
+        self.currentPlayer = self.getNextPlayer()
 
 
 class Card:
@@ -88,6 +114,12 @@ class Deck:
     def getCard(self):
         return self.cards.pop()
 
+    def toStringArray(self):
+        deck = []
+        for card in self.cards:
+            deck.append(card.value)
+        return deck
+
     def size(self):
         return len(self.cards)
 
@@ -112,6 +144,7 @@ class Player:
         self.name = name
         self.socket = socket
         self.game = None
+        self.currentPlay = None
         self.hand = Pile()
         self.up = Pile()
         self.down = Pile()

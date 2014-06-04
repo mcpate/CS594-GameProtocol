@@ -9,6 +9,7 @@ import select
 from lib.game import Player
 from lib.game import Game
 from lib.message import ClientMessageParser
+from lib.game import Card
 
 
 class ServerMessageHandler:
@@ -46,7 +47,7 @@ class ServerMessageHandler:
                     print("(handler) ERROR: game full")
                 else:
                     player = self.players[prefix]
-                    player.gameName = game.name
+                    player.game = game
                     game.addPlayer(player)
                     print("(handler) registering {0} with game {1}".format(prefix, params[0]))
                     clientSocket.send(b'OK')
@@ -56,7 +57,7 @@ class ServerMessageHandler:
             gameList = self.findOpenGames()
             gameString = self.msgParser.arrayToString(gameList)
             if not gameString:
-                print("handler) no open games found")
+                print("(handler) no open games found")
                 clientSocket.send(b'ERROR')
             else:
                 print("(handler) sending game list '{0}' to '{1}'".format(gameString, clientSocket.getpeername()))
@@ -76,52 +77,73 @@ class ServerMessageHandler:
                 #print("(handler) global game registry: {}".format(self.games))
                 clientSocket.send(b'OK')
 
+        elif command == "GETDISCARD":
+            print("(handler) handling message: GETDISCARD")
+            player = self.players[prefix]
+
         elif command == "GETHAND":
             print("(handler) handling message: GETHAND")
             player = self.players[prefix]
-            print("(handler) building string response for hand: {}".format(player.inHand))
-            cardString = self.msgParser.arrayToString(player.inHand)
-            print("(handler) sending '{}' to client".format(cardString))
-            clientSocket.send(bytes(cardString, 'ascii'))
+            cardString = self.msgParser.arrayToString(player.hand.toStringArray())
+            print("(handler) sending hand '{}' to client".format(cardString))
+            if not cardString:
+                clientSocket.send(b'EMPTY')
+            else:
+                clientSocket.send(bytes(cardString, 'ascii'))
 
         elif command == "STARTGAME":
             game = self.games[params[0]]
-            print(game)
-            print("(handler) received request to start game '{0}' from '{1}'".format(game.name, prefix))
-            if len(game.players) < 2:
+            print("(handler) received STARTGAME '{0}' from '{1}'".format(game.name, prefix))
+            if game.numPlayers() < 2:
                 clientSocket.send(b'ERROR')
             elif game.inProgress:
                 clientSocket.send(b'OK')
             else:
-                print("(handler) beginning game {}".format(game.name))
-                print(game.players[0].name, game.players[1].name)
+                print("(handler) beginning game '{}'".format(game.name))
                 game.beginGame()
                 clientSocket.send(b'OK')
+
+        elif command == "STATUSOFPLAY":
+            player = self.players[prefix]
+            game = player.game
+
 
         elif command == "PLAY":
             print("(handler) handling message: PLAY")
             player = self.players[prefix]
-            game_name = player.gameName
-            game = self.games[game_name]
-            opponent = game.getOpponent(player)
-            print("(handler) '{0}' playing '{1}'".format(player.name, params[0]))
-            if game.currentPlay is None:
-                print("(handler) first play")
-                game.currentPlay = params[0]
+            game = player.game
+            player.currentPlay = Card(params[0])
+            print("(handler) registering '{0}' playing '{1}'".format(player.name, params[0]))
+            game.rotateCurrentPlayer()
+            print("(handler) rotating current player to: {}".format(game.currentPlayer.name))
+            clientSocket.send(b'OK')
+
+            #if game.currentPlay is None:
+            #    print("(handler) first play")
+            #    game.currentPlay = params[0]
+            #else:
+            #   if game.currentPlay[0] > params[0][0]:
+             #       print("(handler) LOOSE/WIN")
+             #       clientSocket.send(b'LOOSE')
+             #       opponent.socket.send(b'WIN')
+             #   elif game.currentPlay[0] < params[0][0]:
+             #       print("(handler) WIN/LOOSE")
+             #       clientSocket.send(b'WIN')
+             #       opponent.socket.send(b'LOOSE')
+             #   else:
+             #       print("(handler) TIE/TIE")
+             #       clientSocket.send(b'TIE')
+             #       opponent.socket.send(b'TIE')
+             #   game.currentPlay = None
+
+        elif command == "TURN":
+            print("(handler) handling message: TURN")
+            player = self.players[prefix]
+            game = player.game
+            if player == game.currentPlayer:
+                clientSocket.send(b'OK')
             else:
-                if game.currentPlay[0] > params[0][0]:
-                    print("(handler) LOOSE/WIN")
-                    clientSocket.send(b'LOOSE')
-                    opponent.socket.send(b'WIN')
-                elif game.currentPlay[0] < params[0][0]:
-                    print("(handler) WIN/LOOSE")
-                    clientSocket.send(b'WIN')
-                    opponent.socket.send(b'LOOSE')
-                else:
-                    print("(handler) TIE/TIE")
-                    clientSocket.send(b'TIE')
-                    opponent.socket.send(b'TIE')
-                game.currentPlay = None
+                clientSocket.send(b'ERROR')
 
         else:
             print("(handler) ERROR: Unknown message: ".format(msg))

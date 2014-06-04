@@ -7,8 +7,10 @@ sys.path.append('..')
 import socket
 from time import sleep
 import logging
+#logging.basicConfig(level=logging.DEBUG)
 from lib.game import Player
 from lib.game import Pile
+from lib.message import ServerMessageParser
 
 
 class Client:
@@ -16,40 +18,16 @@ class Client:
     def __init__(self, socket, maxReceive):
         self.socket = socket
         self.maxReceive = maxReceive
+        self.msgParser = ServerMessageParser()
 
-    def registerPlayer(self, name):
-        return self.send("REGISTER;{}".format(name))
-
-    def parse(self, byteMessage):
-        msg = str(byteMessage)
-        return msg[2:-1]
-
-    def getDiscard(self, playerName, gameName, socket):
+    def getDiscard(self, playerName, gameName):
         return self.send(":{0};GETDISCARD;{1}".format(playerName, gameName))
-        #print("(client) requesting discard")
-        #socket.send(bytes(":{0};GETDISCARD;{1}".format(playername, gamename), 'ascii'))
-        #serverResponse = self.parse(socket.recv(MAX_RECV))
-        #print("(client) server response: ".format(serverResponse))
-        #return serverResponse
 
     def getGames(self):
         return self.send("LIST;")
-        #print("(client) requesting the list of games.")
-        #socket.send(b"LIST;")
-        #serverResponse = self.parse(socket.recv(MAX_RECV))
-        #print("(client) server response: {}".format(serverResponse))
-        #serverResponse = serverResponse.split(";")
-        #if len(serverResponse[1]) == 0:
-        #    return []
-        #else:
-        #    return serverResponse[1:]
 
-    def getHand(self, playername, gamename, socket):
-        print("(client) requesting hand")
-        socket.send(bytes(":{0};GETHAND;{1}".format(playername, gamename), 'ascii'))
-        serverResponse = self.parse(socket.recv(MAX_RECV))
-        print("(client) server response: ".format(serverResponse))
-        return serverResponse.split(";")
+    def getHand(self, playerName, gameName):
+        return self.send(":{0};GETHAND;{1}".format(playerName, gameName))
 
     def getUserInput(self, promptText):
         val = input(promptText)
@@ -59,51 +37,38 @@ class Client:
 
     def registerGame(self, playerName, gameName):
         return self.send(":{0};CREATE;{1}".format(playerName, gameName))
-        #print("(client) registering new game: {}".format(gamename))
-        #socket.send(bytes(":{0};CREATE;{1}".format(playername, gamename), 'ascii'))
-        #serverResponse = self.parse(socket.recv(MAX_RECV))
-        #print("(client) server response: {}".format(serverResponse))
-        #return serverResponse
+
+    def registerPlayer(self, name):
+        return self.send("REGISTER;{}".format(name))
 
     def joinGame(self, playerName, gameName):
         return self.send(":{0};JOIN;{1}".format(playerName, gameName))
-        #print("(client) joining game: {}".format(gamename))
-        #socket.send(bytes(":{0};JOIN;{1}".format(playername, gamename), 'ascii'))
-        #serverResponse = self.parse(socket.recv(MAX_RECV))
-        #print("(client) server response: {}".format(serverResponse))
-        #return serverResponse
 
-    def waitForGameStart(self, playerName, gameName):
+    def pollForStatusOfPlay(self, playerName, gameName):
+        return self.send(":{0};STATUSOFPLAY;{1}".format(playerName, gameName))
+
+    def pollForGameStart(self, playerName, gameName):
         response = self.send(":{0};STARTGAME;{1}".format(playerName, gameName))
         while response != "OK":
             sleep(3)
             response = self.send(":{0};STARTGAME;{1}".format(playerName, gameName))
         return response
-        #try:
-        #    socket.send(bytes(msg, 'ascii'))
-        #    data = socket.recv(MAX_RECV)
-        #    while self.parse(data) != "OK":
-        #        print("(client) polling...")
-        #        print("(client) message received: {}".format(data))
-        #        sleep(3)
-        #        socket.send(bytes(msg, 'ascii'))
-        #        data = socket.recv(MAX_RECV)
-        #except BrokenPipeError as e:
-        #    print("(client) broken pipe with error: {}".format(e))
-        #print("(client) game beginning")
 
-    def play(self, card, playername, gamename, socket):
-        print("(client) playing card: {}".format(card))
-        socket.send(bytes(":{0};PLAY;{1}".format(playername, card), 'ascii'))
-        serverResponse = self.parse(socket.recv(MAX_RECV))
-        print("(client) response: ".format(serverResponse))
-        return serverResponse
+    def pollForTurn(self, playerName, gameName):
+        response = self.send(":{0};TURN;{1}".format(playerName, gameName))
+        while response != "OK":
+            sleep(3)
+            response = self.send(":{0};TURN;{1}".format(playerName, gameName))
+        return response
+
+    def play(self, playerName, card):
+        return self.send(":{0};PLAY;{1}".format(playerName, card))
 
     def send(self, msg):
-        logging.debug("(client::send) sending message: ".format(msg))
+        logging.debug(msg)
         self.socket.send(bytes(msg, 'ascii'))
-        response = self.parse(self.socket.recv(self.maxReceive))
-        logging.debug("(client::send) received response: ".format(response))
+        response = self.msgParser.parse(self.socket.recv(self.maxReceive))
+        logging.debug(response)
         return response
 
 
@@ -138,12 +103,27 @@ if __name__ == "__main__":
         else:
             client.registerGame(playerName, gameName)
 
-    gameStart = client.waitForGameStart(playerName, gameName)
+    print("Waiting for other player to join and game to start...")
+    gameStart = client.pollForGameStart(playerName, gameName)
 
     # Game loop
-    state = ""
-    self = Player()
-    while state != "GAMEOVER":
+    statusOfPlay = ""
+    self = Player('DummyVar', 'DummyVar')
+    while statusOfPlay != "GAMEOVER":
+        print("Game beginning!")
+
+        print("Waiting for turn...")
+        turn = client.pollForTurn(playerName, gameName)
+
+        #discard = client.getDiscard(playerName, gameName)
+        hand = client.getHand(playerName, gameName)
+
+        while hand != "EMPTY":
+            print("Here are your cards: {}".format(hand))
+            toPlay = client.getUserInput("Select a card to play: ")
+            client.play(playerName, toPlay)
+
+         #   statusOfPlay = client.pollForStatusOfPlay(playerName, gameName)
 
     # rounds = 0
     # winCount = 0
