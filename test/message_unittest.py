@@ -3,6 +3,7 @@ __author__ = 'MCP'
 
 import unittest
 from lib.message import ClientMessageParser
+from lib.message import ServerMessageParser
 
 
 class ClientMessageParserTest(unittest.TestCase):
@@ -21,6 +22,15 @@ class ClientMessageParserTest(unittest.TestCase):
         combined = c.arrayToString(a)
         self.assertEqual(combined, "")
         self.assertFalse(combined)
+
+
+class ServerMessageParserTest(unittest.TestCase):
+
+    def test_strinToArray(self):
+        c = ServerMessageParser()
+        s = "AB;CD;EF;GH"
+        conversion = c.stringToArray(s)
+        self.assertListEqual(conversion, ["AB", "CD", "EF", "GH"])
 
 
 if __name__ == "__main__":

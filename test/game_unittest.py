@@ -46,25 +46,44 @@ class DeckTest(unittest.TestCase):
             print(card.value)
 
 
+
 class GameTest(unittest.TestCase):
 
+    def setUp(self):
+        self.m = Player('Matt', 'DummySocket')
+        self.j = Player('Jamie', 'DummySocket')
+
     def test_dealCardsDealsCorrectly(self):
-        m = Player('Matt', 'DummySocket')
-        j = Player('Jamie', 'DummySocket')
         deck = Deck()
-        game = Game('SomeGameName', m)
-        game.addPlayer(j)  # This isn't really necessary.
-        game.dealCards([m, j], deck)
-        self.assertEqual(m.hand.size(), 3)
-        self.assertEqual(m.up.size(), 3)
-        self.assertEqual(m.down.size(), 3)
-        self.assertEqual(j.hand.size(), 3)
-        self.assertEqual(j.up.size(), 3)
-        self.assertEqual(m.down.size(), 3)
+        game = Game('SomeGameName', self.m)
+        game.addPlayer(self.j)  # This isn't really necessary.
+        game.dealCards([self.m, self.j], deck)
+        self.assertEqual(self.m.hand.size(), 3)
+        self.assertEqual(self.m.up.size(), 3)
+        self.assertEqual(self.m.down.size(), 3)
+        self.assertEqual(self.j.hand.size(), 3)
+        self.assertEqual(self.j.up.size(), 3)
+        self.assertEqual(self.m.down.size(), 3)
         self.assertEqual(deck.size(), (52 - 18))
 
+    def test_returnsRotationOfPlayers(self):
+        game = Game("SomeGame", self.m)
+        game.addPlayer(self.j)
+        game.beginGame()
+        self.assertEqual(len(game.currentTurn), 1)
+        self.assertRegex(game.currentPlayer.name, self.j.name)
+        nextPlayer = game.getNextPlayer()
+        self.assertRegex(nextPlayer.name, self.m.name)
+        nextPlayer = game.getNextPlayer()
+        self.assertRegex(nextPlayer.name, self.j.name)
 
-
+    def test_rotatesPlayersCorrectly(self):
+        game = Game("SomeGameName", self.m)
+        game.addPlayer(self.j)
+        game.beginGame()
+        self.assertRegex(game.currentPlayer.name, self.j.name)
+        game.rotateCurrentPlayer()
+        self.assertRegex(game.currentPlayer.name, self.m.name)
 
 
 if __name__ == "__main__":
